@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/bkaradzic/go-lz4"
 	"io"
 	"math"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/bkaradzic/go-lz4"
 )
 
 type Posting struct {
@@ -444,7 +445,14 @@ func (idx *InvertedIndex) Add(doc *Document) {
 		for key, val := range doc.tokenPositions(doc.fields[i].Tokens()) {
 			//fmt.Println(key, val)
 			posting := Posting{doc.docId, uint32(len(val)), 1.0, val}
-			idx.index[doc.fields[i].name+":"+key] = append(idx.index[key], posting)
+			//idx.index[doc.fields[i].name+":"+key] = append(idx.index[key], posting)
+			termKey := doc.fields[i].name + ":" + key
+
+			if _, ok := idx.index[doc.fields[i].name+":"+key]; ok {
+				idx.index[termKey] = append(idx.index[termKey], posting)
+			} else {
+				idx.index[termKey] = []Posting{posting}
+			}
 		}
 	}
 
@@ -461,7 +469,7 @@ func (idx *InvertedIndex) analyze(doc *Document) {
 		if doc.fields[i].Analyzed() {
 			doc.fields[i].SetTokens(idx.analyzer.Analyze(doc.fields[i].value))
 		} else {
-			doc.fields[i].SetTokens([]Token{Token{0, uint32(len(doc.fields[i].value)), 0, doc.fields[i].value}})
+			doc.fields[i].SetTokens([]Token{{0, uint32(len(doc.fields[i].value)), 0, doc.fields[i].value}})
 		}
 	}
 }

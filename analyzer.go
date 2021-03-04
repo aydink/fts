@@ -1,10 +1,5 @@
 package fts
 
-import (
-	"strings"
-	"unicode"
-)
-
 type Token struct {
 	start, end, position uint32
 	value                string
@@ -15,7 +10,7 @@ type Tokenizer interface {
 }
 
 type TokenFilterer interface {
-	TokenFilter([]Token) []Token
+	Filter([]Token) []Token
 }
 
 type Analyzer interface {
@@ -38,7 +33,7 @@ func (sa *SimpleAnalyzer) AddTokenFilter(f TokenFilterer) {
 func (sa *SimpleAnalyzer) Analyze(s string) []Token {
 	t := sa.tokenizer.Tokenize(s)
 	for _, tf := range sa.tokenFilters {
-		t = tf.TokenFilter(t)
+		t = tf.Filter(t)
 	}
 	return t
 }
@@ -80,15 +75,5 @@ func (tk SimpleTokenizer) Tokenize(s string) []Token {
 		}
 	}
 
-	return tokens
-}
-
-// TurkishLowercaseFilter lowercases all tokens respecting Tukish specila lowercase rules like "İ"->"i", "I"->"ı"
-type TurkishLowercaseFilter struct{}
-
-func (tf TurkishLowercaseFilter) TokenFilter(tokens []Token) []Token {
-	for i := range tokens {
-		tokens[i].value = strings.ToLowerSpecial(unicode.TurkishCase, tokens[i].value)
-	}
 	return tokens
 }
