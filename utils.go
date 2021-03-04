@@ -1,10 +1,11 @@
 package fts
 
 import (
-	"code.google.com/p/go.text/collate"
-	"code.google.com/p/go.text/language"
 	"os"
 	"strings"
+
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 )
 
 func uint32ToBytes(x uint32) []byte {
@@ -286,8 +287,6 @@ func (a ByValue) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByValue) Less(i, j int) bool { return a[i].Value < a[j].Value }
 
 func TurkishStringComparer() *collate.Collator {
-	col := collate.New(language.Turkish)
-	col.SetOptions(collate.Numeric | collate.IgnoreCase)
-
+	col := collate.New(language.Turkish, collate.Numeric, collate.IgnoreCase)
 	return col
 }
