@@ -12,13 +12,6 @@ type Book struct {
 	Hash     string   `json:"hash"`
 }
 
-type Page struct {
-	Id         uint32 `json:"id"`
-	BookId     uint32 `json:"book_id"`
-	Content    string `json:"content"`
-	PageNumber uint32 `json:"page_number"`
-}
-
 type BookIndex struct {
 	docId   uint32
 	NumDocs uint32
