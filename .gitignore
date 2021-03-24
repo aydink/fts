@@ -1,5 +1,5 @@
 books/
 poppler/
 mehaz/
-*.exe
+static/images/*.png
 out.txt

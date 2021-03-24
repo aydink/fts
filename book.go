@@ -1,26 +1,29 @@
-package fts
+package main
 
 type Book struct {
-	Id       uint32   `json:"id"`
+	Id       int      `json:"id"`
 	Title    string   `json:"title"`
 	Author   string   `json:"author"`
 	Type     string   `json:"type"`
 	Genre    string   `json:"genre"`
 	Category []string `json:"category"`
-	Year     uint32   `json:"year"`
-	NumPages uint32   `json:"num_pages"`
+	Year     int      `json:"year"`
+	NumPages int      `json:"num_pages"`
 	Hash     string   `json:"hash"`
 }
 
 type BookIndex struct {
-	docId   uint32
-	NumDocs uint32
+	docId   int
+	NumDocs int
 	index   map[string][]Posting
 
 	// docCategories will store docIds for every document that blongs to a category
-	bookCategory map[string][]uint32
-	bookType     map[string][]uint32
-	bookGenre    map[string][]uint32
+	bookCategory map[string][]int
+	bookType     map[string][]int
+	bookGenre    map[string][]int
+
+	// Store book metadata
+	bookStore []Book
 
 	// Analyzer to use for text analysis and tokenization
 	analyzer Analyzer
@@ -31,9 +34,11 @@ func NewBookIndex(analyzer Analyzer) *BookIndex {
 	idx.docId = 0
 
 	idx.index = make(map[string][]Posting)
-	idx.bookCategory = make(map[string][]uint32)
-	idx.bookType = make(map[string][]uint32)
-	idx.bookGenre = make(map[string][]uint32)
+	idx.bookCategory = make(map[string][]int)
+	idx.bookType = make(map[string][]int)
+	idx.bookGenre = make(map[string][]int)
+
+	idx.bookStore = make([]Book, 0)
 
 	idx.analyzer = analyzer
 	return idx
@@ -57,12 +62,23 @@ func (idx *BookIndex) Add(doc *Book) {
 
 	for key, val := range tokenPositions(tokens) {
 		//fmt.Println(key, val)
-		posting := Posting{doc.Id, uint32(len(val)), 1.0, val}
+		posting := Posting{uint32(doc.Id), uint32(len(val)), 1.0, val}
 		idx.index[key] = append(idx.index[key], posting)
 	}
 
+	idx.bookStore = append(idx.bookStore, *doc)
+
 	// increment docId after ever document
 	idx.docId++
+}
+
+func (idx *BookIndex) GetBook(hash string) Book {
+	for _, book := range bookStore {
+		if book.Hash == hash {
+			return book
+		}
+	}
+	return Book{}
 }
 
 func (idx *BookIndex) Search(q string) []Posting {

@@ -1,4 +1,4 @@
-package fts
+package main
 
 import (
 	"os"
@@ -187,6 +187,80 @@ func Intersection(arr1, arr2 []Posting) []Posting {
 	}
 
 	p := make([]Posting, 0, min/4)
+
+	i, j := 0, 0
+
+	for i < m && j < n {
+		if arr1[i].docId < arr2[j].docId {
+			i++
+		} else if arr2[j].docId < arr1[i].docId {
+			j++
+		} else { /* if arr1[i] == arr2[j] */
+			//fmt.Printf(" %d ", arr2[j])
+			arr2[j].boost += arr1[i].boost
+			p = append(p, arr2[j])
+			j++
+			i++
+		}
+	}
+
+	return p
+}
+
+func Union(arr1 []Posting, arr2 []Posting) []Posting {
+	m := len(arr1)
+	n := len(arr2)
+
+	i, j := 0, 0
+
+	p := make([]Posting, 0, m)
+
+	for i < m && j < n {
+		if arr1[i].docId < arr2[j].docId {
+			p = append(p, arr1[i])
+			i++
+			//cout << arr1[i++] << " ";
+		} else if arr2[j].docId < arr1[i].docId {
+			p = append(p, arr2[j])
+			j++
+			//cout << arr2[j++] << " ";
+		} else {
+			arr2[j].boost += arr1[i].boost
+			p = append(p, arr2[j])
+			j++
+			//cout << arr2[j++] << " ";
+			i++
+		}
+	}
+
+	/* Print remaining elements of the larger array */
+	for i < m {
+		//cout << arr1[i++] << " ";
+		p = append(p, arr1[i])
+		i++
+	}
+
+	for j < n {
+		//cout << arr2[j++] << " ";
+		p = append(p, arr2[j])
+		j++
+	}
+
+	return p
+}
+
+func Union_(arr1, arr2 []Posting) []Posting {
+	m := len(arr1)
+	n := len(arr2)
+
+	min := 0
+	if m < n {
+		min = m
+	} else {
+		min = n
+	}
+
+	p := make([]Posting, 0, min)
 
 	i, j := 0, 0
 

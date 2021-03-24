@@ -1,6 +1,4 @@
-package fts
-
-import ()
+package main
 
 const (
 	INDEXED      = true

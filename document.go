@@ -1,8 +1,6 @@
-package fts
+package main
 
-import (
 //"fmt"
-)
 
 type Document struct {
 	docId      uint32

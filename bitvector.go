@@ -1,4 +1,4 @@
-package fts
+package main
 
 type BitVector struct {
 	vector []uint32
@@ -10,7 +10,7 @@ func NewBitVector(numBits uint32) BitVector {
 		n++
 	}
 
-	return BitVector{make([]uint32, n, n)}
+	return BitVector{make([]uint32, n)}
 }
 
 func (bv *BitVector) SetBit2(docId uint32) {

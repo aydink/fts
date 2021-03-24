@@ -1,0 +1,23 @@
+{{define "navbar_search"}}
+
+<nav class="navbar fixed-top navbar-light bg-light py-2">
+    <a class="navbar-brand" href="/">Resmi yayınlar</a>
+
+    <div class="col-lg-7 py-0">
+        <form method="GET" action="/search/">
+        <div class="input-group">
+            <input type="text" class="form-control" name="q" id="q" value="{{.q}}" aria-label="Aramak istediğiniz ifadeyi yazınız">
+        
+            &nbsp;
+            
+            <button class="btn" type="submit" name="w" value="content">&nbsp;&nbsp; Ara &nbsp;&nbsp;</button>&nbsp;
+            <button class="btn" type="submit" name="w" value="title">Kitap adında ara</button>
+        </div>
+    </form>
+    </div>
+
+    <a class="navbar-brand">Yardım</a>
+</nav>
+
+{{end}}
+

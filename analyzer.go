@@ -1,4 +1,4 @@
-package fts
+package main
 
 type Token struct {
 	start, end, position uint32

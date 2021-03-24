@@ -1,11 +1,7 @@
-package fts
+package main
 
 import (
-	"encoding/csv"
 	"fmt"
-	"io"
-	"os"
-	"strconv"
 	"testing"
 )
 
@@ -40,7 +36,7 @@ func TestBook(t *testing.T) {
 	pageId := 0
 
 	for k, book := range books {
-		book.Id = uint32(k)
+		book.Id = k
 		index.Add(&book)
 		pages, err := getPages(book)
 
@@ -49,7 +45,7 @@ func TestBook(t *testing.T) {
 		}
 
 		for _, page := range pages {
-			page.Id = uint32(pageId)
+			page.Id = pageId
 			page.BookId = book.Id
 			pageIndex.Add(&page)
 			allPages = append(allPages, page)
@@ -79,56 +75,4 @@ func TestBook(t *testing.T) {
 		fmt.Println(allPages[hit.docId].Content)
 		fmt.Println("------------------------------------------------------------------------------")
 	}
-
-}
-
-func prepareBooks(csvFile string) ([]Book, error) {
-
-	file, err := os.Open("mehaz/" + csvFile)
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
-	}
-
-	r := csv.NewReader(file)
-	r.Comma = ';'
-	r.Comment = '#'
-
-	books := make([]Book, 0)
-
-	for {
-		record, err := r.Read()
-		fmt.Println(record)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		book := Book{}
-		book.Title = record[2]
-		year, err := strconv.ParseUint(record[3], 10, 32)
-		if err != nil {
-			fmt.Println(err)
-			return nil, err
-		}
-
-		book.Year = uint32(year)
-		book.Genre = record[4]
-		book.Category = append(book.Category, record[5])
-
-		hash, err := preparePdfFile("mehaz/" + record[0])
-		if err != nil {
-			fmt.Println(err)
-			return nil, err
-		}
-
-		book.Hash = hash
-		books = append(books, book)
-
-		//processPdfFile(book)
-	}
-
-	return books, nil
 }

@@ -1,4 +1,4 @@
-package fts
+package main
 
 import (
 	"crypto/md5"
@@ -110,7 +110,7 @@ func processPdfFile(book Book) error {
 			return err
 		}
 
-		book.NumPages = uint32(numPages)
+		book.NumPages = numPages
 	}
 
 	if _, err := os.Stat("books/" + book.Hash + ".txt"); os.IsNotExist(err) {
@@ -163,7 +163,7 @@ func getPages(book Book) ([]Page, error) {
 		doc := Page{}
 		doc.BookId = book.Id
 		doc.Content = pages[i]
-		doc.PageNumber = uint32(i + 1)
+		doc.PageNumber = i + 1
 
 		docs = append(docs, doc)
 	}
