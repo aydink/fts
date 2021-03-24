@@ -9,7 +9,3 @@ func idf(docFreq, docCount float64) float64 {
 func tf(termFreq, fieldLen, avgFieldLen float64) float64 {
 	return (termFreq * 2.2) / (termFreq + 1.2*(0.25+0.75*(fieldLen/avgFieldLen)))
 }
-
-func bm25() float64 {
-	return idf(2, 4) * tf(1, 4, 10)
-}

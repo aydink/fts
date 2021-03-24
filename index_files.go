@@ -58,6 +58,7 @@ func prepareBooks(csvFile string) ([]Book, error) {
 		books = append(books, book)
 
 		//processPdfFile(book)
+
 		// save book struct as json file
 		saveBookMeta(book)
 	}

@@ -249,38 +249,6 @@ func Union(arr1 []Posting, arr2 []Posting) []Posting {
 	return p
 }
 
-func Union_(arr1, arr2 []Posting) []Posting {
-	m := len(arr1)
-	n := len(arr2)
-
-	min := 0
-	if m < n {
-		min = m
-	} else {
-		min = n
-	}
-
-	p := make([]Posting, 0, min)
-
-	i, j := 0, 0
-
-	for i < m && j < n {
-		if arr1[i].docId < arr2[j].docId {
-			i++
-		} else if arr2[j].docId < arr1[i].docId {
-			j++
-		} else { /* if arr1[i] == arr2[j] */
-			//fmt.Printf(" %d ", arr2[j])
-			arr2[j].boost += arr1[i].boost
-			p = append(p, arr2[j])
-			j++
-			i++
-		}
-	}
-
-	return p
-}
-
 func IntersectionRangeQuery(p1, p2 []Posting, k int) []Posting {
 	m := len(p1)
 	n := len(p2)

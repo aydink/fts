@@ -127,25 +127,3 @@ func (idx *PageIndex) scorePosting(postings []Posting) {
 		fmt.Println(postings[i].boost)
 	}
 }
-
-/*
-func (idx *PageIndex) Highlight(q string, text string) string {
-	tokens := idx.analyzer.Analyze(q)
-
-	terms := make([]string, 0)
-
-	for _, token := range tokens {
-		terms = append(terms, token.value)
-	}
-
-	segments := getSegments(text, terms)
-
-	hlText := ""
-
-	for _, segment := range segments {
-		hlText += segment.Fragment + "<br>"
-	}
-
-	return hlText
-}
-*/
