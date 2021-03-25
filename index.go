@@ -7,12 +7,6 @@ type Posting struct {
 	positions []uint32
 }
 
-type FieldMeta struct {
-	fieldId   uint32
-	name      string
-	fieldType uint32
-}
-
 type Term struct {
 	Value       string  // string representaion of the Term
 	Idf         float32 // Inverse Document Frequency of the Term

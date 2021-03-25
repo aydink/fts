@@ -77,3 +77,19 @@ func (tk SimpleTokenizer) Tokenize(s string) []Token {
 
 	return tokens
 }
+
+func getUniqueTokens(tokens []Token) []Token {
+	uniqueTokens := make(map[string]Token)
+
+	for _, token := range tokens {
+		uniqueTokens[token.value] = token
+	}
+
+	temp := make([]Token, len(uniqueTokens))
+
+	for _, v := range uniqueTokens {
+		temp = append(temp, v)
+	}
+
+	return temp
+}

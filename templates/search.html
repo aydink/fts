@@ -43,7 +43,9 @@
             color: blue;
         }
 
-        div.hit-content {}
+        div.hit-content {
+            margin-bottom: 1em;
+        }
 
         em {
             font-weight: bold;
@@ -56,7 +58,10 @@
             line-height: 2em;
         }
 
-
+        b {           
+            
+            font-weight: bold;
+        }
 
         dd>em {
             font-weight: 300;
@@ -108,11 +113,13 @@
                   
                             <br>
                             {{range $index, $hit := .hits}}
-                            <div class="hit-title">
+                            <br>
+                            <h4>
                                 <a href="/page?page={{$hit.Page.Id}}&q={{$.q}}">{{$index}} {{$hit.Book.Title}}</a>
-                            </div>
+                            </h4>
                             <div class="hit-content">{{tohtml $hit.HlText}}</div>
-                            <br> 
+                            
+                            
                             {{else}}
                             <div>Aradığınız <strong>{{.q}}</strong> ile ilgili hiçbir arama sonucu mevcut değil.</div>
                             <ul>

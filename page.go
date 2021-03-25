@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"sort"
 )
 
@@ -84,9 +83,9 @@ func (idx *PageIndex) Search(q string) []Posting {
 	for i, token := range tokens {
 		if i == 0 {
 			result = idx.index[token.value]
-			fmt.Println(result)
+			//fmt.Println(result)
 			idx.scorePosting(result)
-			fmt.Println(result)
+			//fmt.Println(result)
 		} else {
 			temp := idx.index[token.value]
 			idx.scorePosting(temp)
@@ -99,10 +98,10 @@ func (idx *PageIndex) Search(q string) []Posting {
 			result = result[0:10]
 		}
 	*/
-	fmt.Println(result)
+	//fmt.Println(result)
 	sort.Sort(ByBoost(result))
-	fmt.Println("-------------------------------------------------")
-	fmt.Println(result)
+	//fmt.Println("-------------------------------------------------")
+	//fmt.Println(result)
 
 	return result
 }
@@ -124,6 +123,6 @@ func (idx *PageIndex) GetPage(pageId int) Page {
 func (idx *PageIndex) scorePosting(postings []Posting) {
 	for i := range postings {
 		postings[i].boost = float32(idf(float64(len(postings)), float64(idx.NumDocs)) * tf(float64(postings[i].frequency), float64(idx.fieldLen[postings[i].docId]), idx.avgFieldLen))
-		fmt.Println(postings[i].boost)
+		//fmt.Println(postings[i].boost)
 	}
 }

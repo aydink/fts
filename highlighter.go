@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"sort"
 )
 
@@ -74,7 +75,7 @@ func (idx *FragmentIndex) updateAvgFieldLen() {
 	idx.avgFieldLen = float64(total) / float64(idx.NumDocs)
 }
 
-func (idx *FragmentIndex) Score(q string) []Fragment {
+func (idx *FragmentIndex) __Score__(q string) []Fragment {
 	tokens := idx.analyzer.Analyze(q)
 
 	result := make([]Posting, 0)
@@ -101,10 +102,76 @@ func (idx *FragmentIndex) Score(q string) []Fragment {
 	return fragments
 }
 
-func (idx *FragmentIndex) _scorePosting(postings []Posting) {
-	for _, v := range postings {
-		v.boost = float32(idf(float64(len(postings)), float64(idx.NumDocs)) * tf(float64(v.frequency), float64(idx.fieldLen[v.docId]), idx.avgFieldLen))
+func (idx *FragmentIndex) Score(q string) []Fragment {
+	tokens := idx.analyzer.Analyze(q)
+	// just search for unique tokens, don't search for twice
+	tokens = getUniqueTokens(tokens)
+
+	result := make([]Posting, 0)
+
+	for i, token := range tokens {
+		if i == 0 {
+			result = idx.index[token.value]
+			idx.scorePosting(result)
+		} else {
+			temp := idx.index[token.value]
+			idx.scorePosting(temp)
+			result = Union(temp, result)
+		}
 	}
+
+	sort.Sort(ByBoost(result))
+
+	if len(result) > 2 {
+		result = result[0:2]
+	}
+
+	fragments := make([]Fragment, 0)
+
+	for _, v := range result {
+		idx.fragmentStore[v.docId].Score = v.boost
+
+		// do actual highlighting <b>term</b>
+		text := idx.fragmentStore[v.docId].Text
+		textTokens := idx.analyzer.Analyze(text)
+
+		starts := make([]uint32, 0)
+		ends := make([]uint32, 0)
+
+		for _, token := range tokens {
+			for _, tt := range textTokens {
+				if token.value == tt.value {
+					starts = append(starts, tt.start)
+					ends = append(ends, tt.end)
+				}
+			}
+		}
+
+		sort.Sort(byValue(starts))
+		//fmt.Println("starts:", starts)
+		sort.Sort(byValue(ends))
+		//fmt.Println("ends:", ends)
+
+		//fmt.Println(text)
+
+		hlText := ""
+
+		//starts: [39 67 97]
+		//ends: [46 74 104]
+
+		var cursor uint32 = 0
+		for i := 0; i < len(starts); i++ {
+			hlText += fmt.Sprint(text[cursor:(starts[i])])
+			hlText += fmt.Sprint("<b>" + text[starts[i]:ends[i]] + "</b>")
+			cursor = ends[i]
+		}
+		hlText += fmt.Sprint(text[cursor:])
+
+		idx.fragmentStore[v.docId].Text = hlText
+		fragments = append(fragments, idx.fragmentStore[v.docId])
+	}
+
+	return fragments
 }
 
 func (idx *FragmentIndex) scorePosting(postings []Posting) {
@@ -153,7 +220,8 @@ func HighlightText(text string, q string) string {
 	}
 
 	for _, v := range fragments {
-		hlText += v.Text + "<br>---------------------------------<br>"
+		//hlText += v.Text + "<br>---------------------------------<br>"
+		hlText += v.Text + "<br>"
 	}
 
 	return hlText

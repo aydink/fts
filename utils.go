@@ -332,3 +332,17 @@ func TurkishStringComparer() *collate.Collator {
 	col := collate.New(language.Turkish, collate.Numeric, collate.IgnoreCase)
 	return col
 }
+
+type byValue []uint32
+
+func (f byValue) Len() int {
+	return len(f)
+}
+
+func (f byValue) Less(i, j int) bool {
+	return f[i] < f[j]
+}
+
+func (f byValue) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
+}
