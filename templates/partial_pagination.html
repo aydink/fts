@@ -1,6 +1,6 @@
 {{define "pagination"}} 
 
-{{if .hasResult}}
+{{if .TotalHits}}
 <ul class="pagination justify-content-center pagination-sm">
 
     {{range $page := .pages}}
