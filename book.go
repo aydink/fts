@@ -1,5 +1,7 @@
 package main
 
+import "github.com/RoaringBitmap/roaring"
+
 type Book struct {
 	Id       int      `json:"id"`
 	Title    string   `json:"title"`
@@ -18,9 +20,12 @@ type BookIndex struct {
 	index   map[string][]Posting
 
 	// docCategories will store docIds for every document that blongs to a category
-	bookCategory map[string][]int
-	bookType     map[string][]int
-	bookGenre    map[string][]int
+	bookCategory map[string][]uint32
+	bookType     map[string][]uint32
+	bookGenre    map[string][]uint32
+
+	// roaring bitmaps to store bookCategory bitmaps
+	categoryBitmaps map[string]*roaring.Bitmap
 
 	// Store book metadata
 	bookStore []Book
@@ -34,9 +39,11 @@ func NewBookIndex(analyzer Analyzer) *BookIndex {
 	idx.docId = 0
 
 	idx.index = make(map[string][]Posting)
-	idx.bookCategory = make(map[string][]int)
-	idx.bookType = make(map[string][]int)
-	idx.bookGenre = make(map[string][]int)
+	idx.bookCategory = make(map[string][]uint32)
+	idx.bookType = make(map[string][]uint32)
+	idx.bookGenre = make(map[string][]uint32)
+
+	idx.categoryBitmaps = make(map[string]*roaring.Bitmap)
 
 	idx.bookStore = make([]Book, 0)
 
@@ -54,11 +61,11 @@ func (idx *BookIndex) Add(doc *Book) {
 
 	// add document categories to index
 	for _, category := range doc.Category {
-		idx.bookCategory[category] = append(idx.bookCategory[category], doc.Id)
+		idx.bookCategory[category] = append(idx.bookCategory[category], uint32(doc.Id))
 	}
 
-	idx.bookType[doc.Type] = append(idx.bookType[doc.Type], doc.Id)
-	idx.bookGenre[doc.Genre] = append(idx.bookGenre[doc.Genre], doc.Id)
+	idx.bookType[doc.Type] = append(idx.bookType[doc.Type], uint32(doc.Id))
+	idx.bookGenre[doc.Genre] = append(idx.bookGenre[doc.Genre], uint32(doc.Id))
 
 	for key, val := range tokenPositions(tokens) {
 		//fmt.Println(key, val)
@@ -73,7 +80,7 @@ func (idx *BookIndex) Add(doc *Book) {
 }
 
 func (idx *BookIndex) GetBook(hash string) Book {
-	for _, book := range bookStore {
+	for _, book := range idx.bookStore {
 		if book.Hash == hash {
 			return book
 		}
@@ -96,6 +103,15 @@ func (idx *BookIndex) Search(q string) []Posting {
 	}
 
 	return result
+}
+
+func (idx *BookIndex) buildCategoryBitmap() {
+
+	for k, v := range idx.bookCategory {
+		rb := roaring.NewBitmap()
+		rb.AddMany(v)
+		idx.categoryBitmaps[k] = rb
+	}
 }
 
 // tokenPositions calculate position data for each token

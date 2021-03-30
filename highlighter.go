@@ -198,9 +198,11 @@ func HighlightText(text string, q string) string {
 
 	turkishFilter := NewTurkishLowercaseFilter()
 	turkishAccentFilter := NewTurkishAccentFilter()
+	turkishStemFilter := NewTurkishStemFilter()
 
 	analyzer.AddTokenFilter(turkishFilter)
 	analyzer.AddTokenFilter(turkishAccentFilter)
+	analyzer.AddTokenFilter(turkishStemFilter)
 
 	index := NewFragmentIndex(analyzer)
 

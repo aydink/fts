@@ -14,6 +14,7 @@ import (
 
 func prepareBooks(csvFile string) ([]Book, error) {
 
+	//file, err := os.Open("mehaz/" + csvFile)
 	file, err := os.Open("mehaz/" + csvFile)
 	if err != nil {
 		fmt.Println(err)
@@ -48,16 +49,18 @@ func prepareBooks(csvFile string) ([]Book, error) {
 		book.Genre = record[4]
 		book.Category = append(book.Category, record[5])
 
-		hash, err := preparePdfFile("mehaz/" + record[0])
+		//hash, err := preparePdfFile("mehaz/" + record[0])
+		hash, err := preparePdfFile(record[0])
 		if err != nil {
 			fmt.Println(err)
-			return nil, err
+			continue
+			//return nil, err
 		}
 
 		book.Hash = hash
 		books = append(books, book)
 
-		//processPdfFile(book)
+		processPdfFile(book)
 
 		// save book struct as json file
 		saveBookMeta(book)

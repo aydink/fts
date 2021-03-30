@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"sort"
+
+	"github.com/RoaringBitmap/roaring"
 )
 
 type Page struct {
@@ -18,6 +21,9 @@ type PageIndex struct {
 
 	// docCategories will store docIds for every document that blongs to a category
 	bookId []int
+
+	// roaring bitmaps to store bookCategory bitmaps
+	categoryBitmaps map[string]*roaring.Bitmap
 
 	// store page content for future use
 	pageStore []Page
@@ -38,6 +44,8 @@ func NewPageIndex(analyzer Analyzer) *PageIndex {
 
 	idx.index = make(map[string][]Posting)
 	idx.bookId = make([]int, 0)
+
+	idx.categoryBitmaps = make(map[string]*roaring.Bitmap)
 
 	// store field length in number of tokens
 	idx.fieldLen = make([]int, 0)
@@ -75,29 +83,106 @@ func (idx *PageIndex) Add(doc *Page) {
 	idx.NumDocs++
 }
 
-func (idx *PageIndex) Search(q string) []Posting {
+func (idx *PageIndex) Original_Search(q string) []Posting {
 	tokens := idx.analyzer.Analyze(q)
 
-	result := make([]Posting, 0)
+	var result []Posting
+	var temp []Posting
+	//result := make([]Posting, 0)
 
 	for i, token := range tokens {
 		if i == 0 {
-			result = idx.index[token.value]
+			//result = idx.index[token.value]
+			result = make([]Posting, len(idx.index[token.value]))
+			copy(result, idx.index[token.value])
 			//fmt.Println(result)
 			idx.scorePosting(result)
 			//fmt.Println(result)
 		} else {
-			temp := idx.index[token.value]
+			//temp := idx.index[token.value]
+			temp = make([]Posting, len(idx.index[token.value]))
+			copy(temp, idx.index[token.value])
 			idx.scorePosting(temp)
-			result = Intersection(temp, result)
+
+			// boolean AND query
+			// result = Intersection(temp, result)
+			// boolean OR query
+			//result = Union(temp, result)
+			// Phrase Query
+			result = PhraseQuery_FullMatch(result, temp)
 		}
 	}
 
+	//idx.getFacetCounts(result)
+
 	/*
-		if len(result) > 10 {
-			result = result[0:10]
+		if len(result) > 100 {
+			result = result[0:100]
 		}
 	*/
+
+	//fmt.Println(result)
+	sort.Sort(ByBoost(result))
+	//fmt.Println("-------------------------------------------------")
+	//fmt.Println(result)
+
+	return result
+}
+
+// TODO
+func (idx *PageIndex) Search(q string) []Posting {
+	tokens := idx.analyzer.Analyze(q)
+
+	var result []Posting
+	var temp []Posting
+	var resultPhrase []Posting
+
+	for i, token := range tokens {
+		if i == 0 {
+			result = make([]Posting, len(idx.index[token.value]))
+			copy(result, idx.index[token.value])
+			//fmt.Println(result)
+			idx.scorePosting(result)
+			//fmt.Println(result)
+		} else {
+			//temp := idx.index[token.value]
+			temp = make([]Posting, len(idx.index[token.value]))
+			copy(temp, idx.index[token.value])
+			idx.scorePosting(temp)
+
+			// boolean AND query
+			result = Intersection(temp, result)
+			// boolean OR query
+			//result = Union(temp, result)
+			// Phrase Query
+			//result = PhraseQuery_FullMatch(result, temp)
+		}
+	}
+
+	for i, token := range tokens {
+		if i == 0 {
+			resultPhrase = make([]Posting, len(idx.index[token.value]))
+			copy(result, idx.index[token.value])
+			//fmt.Println(result)
+			idx.scorePosting(result)
+			//fmt.Println(result)
+		} else {
+			//temp := idx.index[token.value]
+			temp = make([]Posting, len(idx.index[token.value]))
+			copy(temp, idx.index[token.value])
+			idx.scorePosting(temp)
+
+			// boolean AND query
+			// result = Intersection(temp, result)
+			// boolean OR query
+			//result = Union(temp, result)
+			// Phrase Query
+			resultPhrase = PhraseQuery_FullMatch(result, temp)
+		}
+	}
+
+	result = Union(result, resultPhrase)
+
 	//fmt.Println(result)
 	sort.Sort(ByBoost(result))
 	//fmt.Println("-------------------------------------------------")
@@ -125,4 +210,79 @@ func (idx *PageIndex) scorePosting(postings []Posting) {
 		postings[i].boost = float32(idf(float64(len(postings)), float64(idx.NumDocs)) * tf(float64(postings[i].frequency), float64(idx.fieldLen[postings[i].docId]), idx.avgFieldLen))
 		//fmt.Println(postings[i].boost)
 	}
+}
+
+func (idx *PageIndex) buildCategoryBitmap(bookIndex *BookIndex) {
+
+	for k, v := range bookIndex.categoryBitmaps {
+		rb := roaring.NewBitmap()
+
+		for _, page := range idx.pageStore {
+			if v.Contains(uint32(page.BookId)) {
+				rb.AddInt(page.Id)
+			}
+		}
+
+		idx.categoryBitmaps[k] = rb
+	}
+}
+
+func (idx *PageIndex) getFacetCounts(postings []Posting) []FacetCount {
+	facetCounts := make([]FacetCount, 0)
+
+	rb := roaring.NewBitmap()
+	for _, posting := range postings {
+		rb.Add(posting.docId)
+	}
+
+	for k, v := range idx.categoryBitmaps {
+		fc := FacetCount{}
+		fc.Name = k
+		fc.Count = int(v.AndCardinality(rb))
+
+		// add only if facet count is not zero
+		if fc.Count > 0 {
+			facetCounts = append(facetCounts, fc)
+		}
+	}
+
+	sort.Sort(byFacetCount(facetCounts))
+	fmt.Printf("%+v\n", facetCounts)
+
+	return facetCounts
+}
+
+func (idx *PageIndex) facetFilterCategory(postings []Posting, category string) []Posting {
+
+	result := make([]Posting, 0)
+	rb := idx.categoryBitmaps[category]
+
+	for _, posting := range postings {
+		if rb.Contains(posting.docId) {
+			result = append(result, posting)
+		}
+	}
+	return result
+}
+
+func (idx *PageIndex) tokenStats() []FacetCount {
+
+	stats := make([]FacetCount, 0)
+
+	for k, v := range idx.index {
+		fc := FacetCount{}
+		fc.Name = k
+
+		counter := 0
+		for _, posting := range v {
+			counter += int(posting.frequency)
+		}
+
+		fc.Count = counter
+
+		stats = append(stats, fc)
+	}
+
+	sort.Sort(byFacetCount(stats))
+	return stats
 }

@@ -38,6 +38,7 @@ func (sa *SimpleAnalyzer) Analyze(s string) []Token {
 	return t
 }
 
+//var p = map[string]bool{'\'': true, ',': true, '.': true, ':': true, ';': true, '!': true, '?': true, '(': true, ')': true, '"': true, ' ': true, '\t': true, '\n': true, '\r': true, '|': true, '\\': true, '/': true, "“": true, "”": true, "@": true, "‘": true, "’": true, "…": true, "-": true, "*": true, "+": true, "%": true, "=": true, "$": true, "~": true, "&": true, "£": true, "₺": true, "{": true, "}": true, "[": true, "]": true, "^": true}
 var p = map[byte]bool{'\'': true, ',': true, '.': true, ':': true, ';': true, '!': true, '?': true, '(': true, ')': true, '"': true, ' ': true, '\t': true, '\n': true, '\r': true, '|': true, '\\': true, '/': true}
 
 type SimpleTokenizer struct{}
