@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -9,8 +8,6 @@ import (
 	"gopkg.in/neurosnap/sentences.v1/english"
 )
 
-var bookStore []Book
-var pageStore []Page
 var bookIndex *BookIndex
 var pageIndex *PageIndex
 
@@ -21,24 +18,42 @@ func buildIndex() {
 
 	turkishFilter := NewTurkishLowercaseFilter()
 	turkishAccentFilter := NewTurkishAccentFilter()
+	turkishStemFilter := NewTurkishStemFilter()
 
 	analyzer.AddTokenFilter(turkishFilter)
 	analyzer.AddTokenFilter(turkishAccentFilter)
+	analyzer.AddTokenFilter(turkishStemFilter)
 
 	bookIndex = NewBookIndex(analyzer)
 	pageIndex = NewPageIndex(analyzer)
 
-	books, err := prepareBooks("xliste.csv")
-	if err != nil {
-		fmt.Println("Failed to load book list csv file")
-		return
-	}
+	/*
+			books, err := prepareBooks("li.csv")
+			if err != nil {
+				fmt.Println("Failed to load book list csv file")
+				return
+			}
 
-	for _, book := range books {
-		indexBook(book)
-	}
+			for _, book := range books {
+				indexBook(book)
+			}
+
+		books, err := prepareBooks("xliste.csv")
+		if err != nil {
+			fmt.Println("Failed to load book list csv file")
+			return
+		}
+
+		for _, book := range books {
+			indexBook(book)
+		}
+	*/
+	reindexAllFiles()
 
 	pageIndex.updateAvgFieldLen()
+
+	bookIndex.buildCategoryBitmap()
+	pageIndex.buildCategoryBitmap(bookIndex)
 }
 
 func main() {
@@ -60,6 +75,7 @@ func main() {
 	http.HandleFunc("/page", pageHandler)
 	http.HandleFunc("/image", imageHandler)
 	http.HandleFunc("/download/", downloadHandler)
+	http.HandleFunc("/stats", tokenStatHandler)
 	//http.HandleFunc("/api/addbook", indexFileHandler)
 	//http.HandleFunc("/api/payloads", payloadHandler)
 

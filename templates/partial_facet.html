@@ -23,8 +23,8 @@
 {{if .categoryFacet}}
 <div class="facet-header">Kategori</div>
 {{range $facet := .categoryFacet}}
-<div class="facet-item" onclick="addFilter({key:'category', value:'{{$facet.Key}}'})">{{$facet.Key}}
-    <span class="facet-count">({{$facet.DocCount}})</span>
+<div class="facet-item" onclick="addFilter({key:'category', value:'{{$facet.Name}}'})">{{$facet.Name}}
+    <span class="facet-count">({{$facet.Count}})</span>
 </div>
 {{end}}
 <br> 

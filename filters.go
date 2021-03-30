@@ -1,6 +1,10 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
+	"log"
+	"os"
 	"strings"
 	"unicode"
 )
@@ -33,4 +37,50 @@ func (tf turkishAccentFilter) Filter(tokens []Token) []Token {
 		tokens[i].value = replacer.Replace(tokens[i].value)
 	}
 	return tokens
+}
+
+type turkishStemFilter struct{}
+
+func NewTurkishStemFilter() TokenFilterer {
+	filter := turkishStemFilter{}
+	return filter
+}
+
+func (tf turkishStemFilter) Filter(tokens []Token) []Token {
+
+	for i := range tokens {
+		if val, ok := dict[tokens[i].value]; ok {
+			tokens[i].value = val
+		}
+	}
+	return tokens
+}
+
+var dict map[string]string
+
+func loadTurkishStems() map[string]string {
+	file, err := os.Open("data/turkish_synonym.txt")
+	if err != nil {
+		log.Fatalln(err)
+		return nil
+	}
+
+	dict := make(map[string]string)
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.Split(scanner.Text(), "=>")
+		dict[line[0]] = line[1]
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	return dict
+}
+
+func init() {
+	dict = loadTurkishStems()
+	fmt.Println("Turkish stemmer dictionary loaded:", len(dict), "items")
 }

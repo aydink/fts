@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"log"
@@ -27,9 +26,6 @@ type Payload struct {
 	Key   string              `json:"key"`
 	Value map[string][][4]int `json:"value"`
 }
-
-var dict map[string]string
-var replacer *strings.Replacer
 
 var f = func(c rune) bool {
 	return !unicode.IsLetter(c) && !unicode.IsNumber(c)
@@ -197,31 +193,3 @@ func ProcessPayloadFile(hash string) {
 		}
 	}
 }
-
-func loadTurkishStems() map[string]string {
-	file, err := os.Open("data/turkish_synonym.txt")
-	if err != nil {
-		log.Fatalln(err)
-		return nil
-	}
-
-	dict := make(map[string]string)
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := strings.Split(scanner.Text(), "=>")
-		dict[line[0]] = line[1]
-	}
-
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
-	}
-
-	return dict
-}
-
-/*
-func main() {
-	ProcessPayloadFile("4e569eed38f86061c49f9260b43b56d7")
-}
-*/

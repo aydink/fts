@@ -79,6 +79,17 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	t := template.Must(template.New("").Funcs(funcMap).ParseGlob("templates/*.html"))
 
 	keywords := r.URL.Query().Get("q")
+	category := r.URL.Query().Get("category")
+
+	start := r.URL.Query().Get("start")
+	startInt, err := strconv.Atoi(start)
+	//	fmt.Println("start:", startInt)
+
+	if err != nil {
+		//fmt.Println("error parsing 'start' parameter")
+		startInt = 0
+	}
+
 	/*
 		searchType := r.URL.Query().Get("w")
 		start := r.URL.Query().Get("start")
@@ -91,11 +102,35 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	*/
 
-	data := make(map[string]interface{})
 	templateName := "search"
 
 	hits := pageIndex.Search(keywords)
 
+	if len(category) > 0 {
+		hits = pageIndex.facetFilterCategory(hits, category)
+	}
+
+	data := make(map[string]interface{})
+	data["q"] = keywords
+	data["categoryFacet"] = pageIndex.getFacetCounts(hits)
+
+	totalHits := len(hits)
+	data["TotalHits"] = totalHits
+
+	data["pages"] = Paginate(startInt, 10, len(hits))
+
+	if startInt < totalHits {
+		if (startInt + 10) < totalHits {
+			hits = hits[startInt : startInt+10]
+		} else {
+			hits = hits[startInt:]
+		}
+	}
+	/*
+		if len(hits) > 10 {
+			hits = hits[0:10]
+		}
+	*/
 	hitResults := make([]HitResult, 0)
 
 	for _, hit := range hits {
@@ -137,7 +172,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 			data["definition"], data["hasDefinition"] = queryDictionary(keywords)
 		}
 	*/
-	err := t.ExecuteTemplate(w, templateName, data)
+	err = t.ExecuteTemplate(w, templateName, data)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -289,4 +324,15 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/pdf")
 	io.Copy(w, file)
+}
+
+// send token statistics
+func tokenStatHandler(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Disposition", "attachment; filename=token_stats.txt")
+	w.Header().Set("Content-Type", "text/plain")
+
+	for _, v := range pageIndex.tokenStats() {
+		fmt.Fprintf(w, "%s\t%d\n", v.Name, v.Count)
+	}
 }

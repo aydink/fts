@@ -249,7 +249,7 @@ func Union(arr1 []Posting, arr2 []Posting) []Posting {
 	return p
 }
 
-func IntersectionRangeQuery(p1, p2 []Posting, k int) []Posting {
+func IntersectionPhraseQuery(p1, p2 []Posting, k int) []Posting {
 	m := len(p1)
 	n := len(p2)
 
@@ -295,6 +295,56 @@ func IntersectionRangeQuery(p1, p2 []Posting, k int) []Posting {
 			}
 
 			//------------------------------------------------------------
+
+			j++
+			i++
+		}
+	}
+
+	return p
+}
+
+func PhraseQuery_FullMatch(p1, p2 []Posting) []Posting {
+	m := len(p1)
+	n := len(p2)
+
+	min := 0
+	if m < n {
+		min = m
+	} else {
+		min = n
+	}
+
+	p := make([]Posting, 0, min/4)
+
+	i, j := 0, 0
+
+	for i < m && j < n {
+		if p1[i].docId < p2[j].docId {
+			i++
+		} else if p2[j].docId < p1[i].docId {
+			j++
+		} else {
+
+			pp1 := p1[i].positions
+			pp2 := p2[j].positions
+
+			m1 := len(p1[i].positions)
+			n1 := len(p2[j].positions)
+
+			i1, j1 := 0, 0
+
+			for i1 < m1 && j1 < n1 {
+				//if abs(int(pp1[i1])-int(pp2[j1])) <= k {
+				if (int(pp1[i1]) - int(pp2[j1])) == -1 {
+					p = append(p, p2[j])
+					break
+				} else if pp1[i1] < pp2[j1] {
+					i1++
+				} else {
+					j1++
+				}
+			}
 
 			j++
 			i++
