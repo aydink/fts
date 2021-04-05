@@ -13,12 +13,6 @@ import (
 	"strings"
 )
 
-var filterFullNames = map[string]string{
-	"year":     "Basım yılı",
-	"genre":    "Türü",
-	"category": "Kategori",
-}
-
 type HitResult struct {
 	Book   Book
 	Page   Page
@@ -28,6 +22,13 @@ type HitResult struct {
 // getFullFilterName return full name of the filter
 // eg. "year": "Yıl", "genre": "Türü"
 func getFullFilterName(key string) string {
+
+	filterFullNames := map[string]string{
+		"year":     "Basım yılı",
+		"genre":    "Türü",
+		"category": "Kategori",
+	}
+
 	if value, found := filterFullNames[key]; found {
 		return value
 	}
@@ -35,7 +36,7 @@ func getFullFilterName(key string) string {
 }
 
 func getFilters(v url.Values) [][3]string {
-	filterNames := []string{"genre", "department", "year", "category"}
+	filterNames := []string{"genre", "type", "category"}
 
 	filters := make([][3]string, 0)
 
@@ -57,29 +58,17 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
-	/*
-		v := r.URL.Query()
-		filters := getFilters(v)
 
-		filterNames := []string{"genre", "department", "year", "category"}
-
-		v := r.URL.Query()
-
-		filters := make([][3]string, 0)
-
-		for _, name := range filterNames {
-			if v.Get(name) != "" {
-				filters = append(filters, [3]string{name, getFullFilterName(name), v.Get(name)})
-			}
-		}
-	*/
+	v := r.URL.Query()
+	filters := getFilters(v)
 
 	//t, err := template.ParseFiles("templates/search.html")
 	//t := template.Must(template.New("").Funcs(funcMap).ParseFiles("templates/search.html", "templates/partial_facet.html", "templates/partial_pagination.html", "templates/partial_definition.html"))
 	t := template.Must(template.New("").Funcs(funcMap).ParseGlob("templates/*.html"))
 
-	keywords := r.URL.Query().Get("q")
+	q := r.URL.Query().Get("q")
 	category := r.URL.Query().Get("category")
+	//searchType := r.URL.Query().Get("w")
 
 	start := r.URL.Query().Get("start")
 	startInt, err := strconv.Atoi(start)
@@ -90,34 +79,23 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		startInt = 0
 	}
 
-	/*
-		searchType := r.URL.Query().Get("w")
-		start := r.URL.Query().Get("start")
-		startInt, err := strconv.Atoi(start)
-		fmt.Println("start:", startInt)
-
-		if err != nil {
-			//fmt.Println("error parsing 'start' parameter")
-			startInt = 0
-		}
-	*/
-
 	templateName := "search"
 
-	hits := pageIndex.Search(keywords)
+	hits := pageIndex.Search(q)
 
 	if len(category) > 0 {
 		hits = pageIndex.facetFilterCategory(hits, category)
 	}
 
 	data := make(map[string]interface{})
-	data["q"] = keywords
+	data["q"] = q
 	data["categoryFacet"] = pageIndex.getFacetCounts(hits)
 
 	totalHits := len(hits)
 	data["TotalHits"] = totalHits
 
 	data["pages"] = Paginate(startInt, 10, len(hits))
+	data["filters"] = filters
 
 	if startInt < totalHits {
 		if (startInt + 10) < totalHits {
@@ -138,7 +116,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		result := HitResult{}
 		result.Page = pageIndex.GetPage(int(hit.docId))
 		result.Book = bookIndex.bookStore[result.Page.BookId]
-		result.HlText = HighlightText(result.Page.Content, keywords)
+		result.HlText = HighlightText(result.Page.Content, q)
 
 		hitResults = append(hitResults, result)
 
@@ -148,6 +126,20 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 
 	data["hits"] = hitResults
 
+	// do not search book titles if a filter applied
+	if len(category) == 0 && startInt == 0 {
+
+		books := make([]Book, 0)
+
+		postings := bookIndex.Search(q)
+		for _, posting := range postings {
+			book := bookIndex.bookStore[posting.docId]
+			book.Title = bookIndex.HighlightTitle(book.Title, q)
+			books = append(books, book)
+		}
+
+		data["titles"] = books
+	}
 	/*
 		if searchType == "title" {
 			//data = titleQuery(keywords, startInt, getFilters(r.URL.Path))
@@ -179,77 +171,46 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func pageHandler(w http.ResponseWriter, r *http.Request) {
+	t := template.Must(template.New("").Funcs(funcMap).ParseGlob("templates/*.html"))
 
-	tpl := `
-	<html>
-	<head></head>
-	<body>
-	<img src="/static/images/{{- . -}}.png"/>
-	
-	</body>
-
-	</html>
-	`
-	t := template.Must(template.New("page").Parse(tpl))
-
+	q := r.URL.Query().Get("q")
 	page := r.URL.Query().Get("page")
 	pageInt, err := strconv.Atoi(page)
 
 	if err != nil {
-		//fmt.Println("error parsing 'start' parameter")
 		pageInt = 0
 	}
 
-	hash := bookIndex.bookStore[pageIndex.GetPage(pageInt).BookId].Hash
-	image := hash + "-" + strconv.Itoa(pageIndex.GetPage(pageInt).PageNumber)
+	curPage := pageIndex.GetPage(pageInt)
+	curBook := bookIndex.bookStore[curPage.BookId]
+	hash := curBook.Hash
+
+	image := hash + "-" + strconv.Itoa(curPage.PageNumber)
+
 	createImage(image)
-
-	t.ExecuteTemplate(w, "page", image)
-	//fmt.Fprintln(w, "<img src=\"/static/images/"+hash+"-"+strconv.Itoa(pageIndex.GetPage(pageInt).PageNumber)+".png\"/>")
-	//fmt.Fprintln(w, pageIndex.GetPage(pageInt).Content)
-
-	sentences := sentenceTokenizer.Tokenize(pageIndex.GetPage(pageInt).Content)
-
-	for _, s := range sentences {
-		fmt.Fprintln(w, s.Text)
-		fmt.Fprintln(w, "-----------------------------------------------")
-	}
-
-	//q := r.URL.Query().Get("q")
-}
-
-/*
-func pageHandler(w http.ResponseWriter, r *http.Request) {
-	t := template.Must(template.New("").Funcs(funcMap).ParseGlob("templates/*.html"))
-
-	query := r.URL.Query().Get("page")
-	q := r.URL.Query().Get("q")
-	parts := strings.Split(query, "-")
-	hash := parts[0]
-	page := parts[1]
-
-	createImage(query)
 
 	data := make(map[string]interface{})
 	data["q"] = q
-	data["image"] = query
+	data["title"] = curBook.Title
+	data["image"] = image
+	data["content"] = curPage.Content
 	data["hash"] = hash
-	data["page"] = page
-	data["doc"] = getDocument(query)
+	data["pageNumber"] = curPage.PageNumber
+	data["numPages"] = curBook.NumPages
+	data["numPages"] = pageIndex.NumDocs
+	data["page"] = pageInt
 
+	//fmt.Printf("%+v", data)
 	t.ExecuteTemplate(w, "document", data)
 }
-*/
 
-/*
 func payloadHandler(w http.ResponseWriter, r *http.Request) {
 	page := r.URL.Query().Get("page")
 	q := r.URL.Query().Get("q")
 
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprint(w, QueryStringTokens(page, q))
+	fmt.Fprint(w, GetTokenPositions(page, q))
 }
-*/
 
 func imageHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("page")

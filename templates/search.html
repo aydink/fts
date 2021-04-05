@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Resmi Yayınlar</title>
+    <title>Kitap Arama Motoru</title>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -115,7 +115,7 @@
                             {{range $index, $hit := .hits}}
                             <br>
                             <h4>
-                                <a href="/page?page={{$hit.Page.Id}}&q={{$.q}}">{{$index}} {{$hit.Book.Title}}</a>
+                                <a href="/page?page={{$hit.Page.Id}}&q={{$.q}}">{{$hit.Book.Title}}</a>
                             </h4>
                             <div class="hit-content">{{tohtml $hit.HlText}}</div>
                             
@@ -139,10 +139,10 @@
                 {{template "definition" .}}
                 <br><br>
                 {{if .titles}}
-                <h4>Dokümanlar</h4>
+                <h5>Dokümanlar</h5>
                 {{range .titles}}
                 <div class="book-title">
-                    - <a href="/download?book={{.Id}}">{{.Title | tohtml}}</a>
+                    - <a href="/download?book={{.Hash}}">{{.Title | tohtml}}</a>
                 </div>
                 {{end}}
                 {{end}}

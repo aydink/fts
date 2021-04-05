@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Resmi Yayınlar</title>
+    <title>Kitap Arama Motoru</title>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -142,7 +142,7 @@
     
         <div class="row">
             <div class="col-lg-12 card rounded-0">
-                <a style="margin: auto; font-size:larger" id="pdflink" href="#" onclick="openPdf()">{{.doc.Serial}} {{.doc.Title}}</a>
+                <a style="margin: auto; font-size:larger" id="pdflink" href="#" onclick="openPdf()">{{.title}}</a>
             </div>
             <div class="col-lg-12 card rounded-0">
                 <div class="image-container" id="image_container">
@@ -164,12 +164,12 @@
 <script src="/static/bootstrap-4/js/bootstrap.min.js"></script>
 <script>
     
-    var currentPage = parseInt({{.page}});
+    var currentPage ={{.page}};
     var hash = {{.hash}};
-
+    var maxPage = {{.numPages}};
 
     function loadPage(increment) {
-        maxPage = {{.doc.NumPages}};
+       
 
         currentPage = currentPage + increment;
 

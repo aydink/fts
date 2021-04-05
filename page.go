@@ -162,7 +162,7 @@ func (idx *PageIndex) Search(q string) []Posting {
 	for i, token := range tokens {
 		if i == 0 {
 			resultPhrase = make([]Posting, len(idx.index[token.value]))
-			copy(result, idx.index[token.value])
+			copy(resultPhrase, idx.index[token.value])
 			//fmt.Println(result)
 			idx.scorePosting(result)
 			//fmt.Println(result)
@@ -177,7 +177,7 @@ func (idx *PageIndex) Search(q string) []Posting {
 			// boolean OR query
 			//result = Union(temp, result)
 			// Phrase Query
-			resultPhrase = PhraseQuery_FullMatch(result, temp)
+			resultPhrase = PhraseQuery_FullMatch(resultPhrase, temp)
 		}
 	}
 
@@ -225,6 +225,19 @@ func (idx *PageIndex) buildCategoryBitmap(bookIndex *BookIndex) {
 
 		idx.categoryBitmaps[k] = rb
 	}
+}
+
+func (idx *PageIndex) createBookFilter(bookId int) *roaring.Bitmap {
+
+	rb := roaring.NewBitmap()
+
+	for _, page := range idx.pageStore {
+		if page.BookId == bookId {
+			rb.AddInt(page.Id)
+		}
+	}
+
+	return rb
 }
 
 func (idx *PageIndex) getFacetCounts(postings []Posting) []FacetCount {

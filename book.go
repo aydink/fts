@@ -1,6 +1,11 @@
 package main
 
-import "github.com/RoaringBitmap/roaring"
+import (
+	"fmt"
+	"sort"
+
+	"github.com/RoaringBitmap/roaring"
+)
 
 type Book struct {
 	Id       int      `json:"id"`
@@ -30,6 +35,12 @@ type BookIndex struct {
 	// Store book metadata
 	bookStore []Book
 
+	// store field length in number of tokens
+	fieldLen []int
+
+	// avarage field length
+	avgFieldLen float64
+
 	// Analyzer to use for text analysis and tokenization
 	analyzer Analyzer
 }
@@ -46,6 +57,9 @@ func NewBookIndex(analyzer Analyzer) *BookIndex {
 	idx.categoryBitmaps = make(map[string]*roaring.Bitmap)
 
 	idx.bookStore = make([]Book, 0)
+
+	// store field length in number of tokens
+	idx.fieldLen = make([]int, 0)
 
 	idx.analyzer = analyzer
 	return idx
@@ -75,6 +89,8 @@ func (idx *BookIndex) Add(doc *Book) {
 
 	idx.bookStore = append(idx.bookStore, *doc)
 
+	idx.fieldLen = append(idx.fieldLen, len(tokens))
+
 	// increment docId after ever document
 	idx.docId++
 }
@@ -89,18 +105,62 @@ func (idx *BookIndex) GetBook(hash string) Book {
 }
 
 func (idx *BookIndex) Search(q string) []Posting {
-	tokens := idx.analyzer.Analyze(q)
+	var result []Posting
+	var temp []Posting
+	var resultPhrase []Posting
 
-	result := make([]Posting, 0)
+	tokens := idx.analyzer.Analyze(q)
 
 	for i, token := range tokens {
 		if i == 0 {
-			result = idx.index[token.value]
+			result = make([]Posting, len(idx.index[token.value]))
+			copy(result, idx.index[token.value])
+			//fmt.Println(result)
+			idx.scorePosting(result)
+			//fmt.Println(result)
 		} else {
-			temp := idx.index[token.value]
+			//temp := idx.index[token.value]
+			temp = make([]Posting, len(idx.index[token.value]))
+			copy(temp, idx.index[token.value])
+			idx.scorePosting(temp)
+
+			// boolean AND query
 			result = Intersection(temp, result)
+			// boolean OR query
+			//result = Union(temp, result)
+			// Phrase Query
+			//result = PhraseQuery_FullMatch(result, temp)
 		}
 	}
+
+	for i, token := range tokens {
+		if i == 0 {
+			resultPhrase = make([]Posting, len(idx.index[token.value]))
+			copy(resultPhrase, idx.index[token.value])
+			//fmt.Println(result)
+			idx.scorePosting(result)
+			//fmt.Println(result)
+		} else {
+			//temp := idx.index[token.value]
+			temp = make([]Posting, len(idx.index[token.value]))
+			copy(temp, idx.index[token.value])
+			idx.scorePosting(temp)
+
+			// boolean AND query
+			// result = Intersection(temp, result)
+			// boolean OR query
+			//result = Union(temp, result)
+			// Phrase Query
+			resultPhrase = PhraseQuery_FullMatch(resultPhrase, temp)
+		}
+	}
+
+	result = Union(result, resultPhrase)
+
+	//fmt.Println(result)
+	sort.Sort(ByBoost(result))
+	//fmt.Println("-------------------------------------------------")
+	//fmt.Println(result)
 
 	return result
 }
@@ -112,6 +172,65 @@ func (idx *BookIndex) buildCategoryBitmap() {
 		rb.AddMany(v)
 		idx.categoryBitmaps[k] = rb
 	}
+}
+
+func (idx *BookIndex) HighlightTitle(text string, q string) string {
+	// do actual highlighting <b>term</b>
+	//text := idx.fragmentStore[v.docId].Text
+
+	tokens := idx.analyzer.Analyze(q)
+	// just search for unique tokens, don't search for twice
+	tokens = getUniqueTokens(tokens)
+
+	textTokens := bookIndex.analyzer.Analyze(text)
+
+	starts := make([]uint32, 0)
+	ends := make([]uint32, 0)
+
+	for _, token := range tokens {
+		for _, tt := range textTokens {
+			if token.value == tt.value {
+				starts = append(starts, tt.start)
+				ends = append(ends, tt.end)
+			}
+		}
+	}
+
+	sort.Sort(byValue(starts))
+	sort.Sort(byValue(ends))
+
+	hlText := ""
+
+	//starts: [39 67 97]
+	//ends: [46 74 104]
+
+	var cursor uint32 = 0
+	for i := 0; i < len(starts); i++ {
+		hlText += fmt.Sprint(text[cursor:(starts[i])])
+		hlText += fmt.Sprint("<b>" + text[starts[i]:ends[i]] + "</b>")
+		cursor = ends[i]
+	}
+	hlText += fmt.Sprint(text[cursor:])
+	//fmt.Println(hlText)
+
+	return hlText
+}
+
+func (idx *BookIndex) scorePosting(postings []Posting) {
+	for i := range postings {
+		postings[i].boost = float32(idf(float64(len(postings)), float64(idx.NumDocs)) * tf(float64(postings[i].frequency), float64(idx.fieldLen[postings[i].docId]), idx.avgFieldLen))
+		//fmt.Println(postings[i].boost)
+	}
+}
+
+func (idx *BookIndex) updateAvgFieldLen() {
+	total := 0
+
+	for _, v := range idx.fieldLen {
+		total += v
+	}
+
+	idx.avgFieldLen = float64(total) / float64(idx.NumDocs)
 }
 
 // tokenPositions calculate position data for each token

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"compress/gzip"
 	"fmt"
 	"log"
 	"os"
@@ -59,15 +60,23 @@ func (tf turkishStemFilter) Filter(tokens []Token) []Token {
 var dict map[string]string
 
 func loadTurkishStems() map[string]string {
-	file, err := os.Open("data/turkish_synonym.txt")
+	//file, err := os.Open("data/turkish_synonym.txt")
+	f, err := os.Open("data/turkish_synonym.txt.gz")
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
+	defer f.Close()
+
+	gr, err := gzip.NewReader(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer gr.Close()
 
 	dict := make(map[string]string)
 
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(gr)
 	for scanner.Scan() {
 		line := strings.Split(scanner.Text(), "=>")
 		dict[line[0]] = line[1]
