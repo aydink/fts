@@ -5,3 +5,4 @@ poppler/
 mehaz/
 static/images/*.png
 out.txt
+data/page_payload.cdb
