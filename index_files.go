@@ -150,4 +150,7 @@ func indexBook(book Book) {
 		page.BookId = book.Id
 		pageIndex.Add(&page)
 	}
+
+	processPayload(book.Hash)
+	syncPayload()
 }

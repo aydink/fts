@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 
 	"gopkg.in/neurosnap/sentences.v1"
 	"gopkg.in/neurosnap/sentences.v1/english"
@@ -62,10 +64,28 @@ func buildIndex() {
 	//fmt.Println(LoadPagePayload("a33a19469bfa738e5292140fea7cea6f-21"))
 }
 
+func cleanUpBeforeExit() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for sig := range c {
+			// sig is a ^C, handle it
+			fmt.Println(sig.String(), "Ctrl-C captured")
+			fmt.Println("Closing pogrep database")
+			pg.Close()
+			os.Exit(0)
+		}
+	}()
+}
+
 func main() {
 
 	log.SetFlags(log.Llongfile)
 
+	// goroutine to handle Ctrl-C exit event
+	cleanUpBeforeExit()
+
+	// build fulltext index
 	buildIndex()
 
 	var err error

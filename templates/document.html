@@ -164,7 +164,7 @@
 <script src="/static/bootstrap-4/js/bootstrap.min.js"></script>
 <script>
     
-    var currentPage ={{.page}};
+    var currentPage ={{.pageNumber}};
     var hash = {{.hash}};
     var maxPage = {{.numPages}};
 
@@ -204,7 +204,7 @@
     }
 
     $(document).ready(function(){
-        loadPayloads("{{.hash}}-{{.page}}", "{{.q}}");
+        loadPayloads("{{.hash}}-{{.pageNumber}}", "{{.q}}");
     });
 
     // create highlight for each posting
@@ -247,7 +247,7 @@
     }
 
     function openPdf() {
-        window.location.href = "/download/?book="+hash+"#page="+currentPage;
+        window.location.href = "/download/?book="+hash+"#page="+{{.pageNumber}};
     }
 
     function updateUrl() {

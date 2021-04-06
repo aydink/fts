@@ -2,6 +2,7 @@ fts.exe
 fts
 books/
 poppler/
+payload/
 mehaz/
 static/images/*.png
 out.txt

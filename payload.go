@@ -4,17 +4,13 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"log"
-	"path/filepath"
-
 	"math"
 	"os"
 	"strconv"
 	"strings"
 
-	"github.com/colinmarc/cdb"
+	"github.com/akrylysov/pogreb"
 	"golang.org/x/net/html"
 )
 
@@ -35,7 +31,7 @@ func GetTokenPositions(page string, q string) string {
 	tokens := pageIndex.analyzer.Analyze(q)
 
 	filteredTokens := make(map[string][][4]int)
-	pageTokens := LoadPagePayload(page)
+	pageTokens := loadPayload(page)
 
 	for _, token := range tokens {
 		filteredTokens[token.value] = pageTokens[token.value]
@@ -46,9 +42,169 @@ func GetTokenPositions(page string, q string) string {
 		log.Println(err)
 	}
 
-	fmt.Println(string(jsonString))
+	//fmt.Println(string(jsonString))
 	return string(jsonString)
 
+}
+
+var pg *pogreb.DB
+
+func init() {
+	var err error
+	pg, err = pogreb.Open("payload", nil)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+}
+
+func savePayload(key string, tokens map[string][][4]int) error {
+	ok, err := pg.Has([]byte(key))
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+
+	if err := enc.Encode(tokens); err != nil {
+		log.Fatal(err)
+	}
+
+	if !ok {
+		err = pg.Put([]byte(key), buf.Bytes())
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func syncPayload() error {
+	err := pg.Sync()
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	return nil
+}
+
+func loadPayload(key string) map[string][][4]int {
+
+	m := make(map[string][][4]int)
+
+	v, err := pg.Get([]byte(key))
+	if err != nil {
+		log.Println(err)
+		return m
+	}
+
+	buf := bytes.NewBuffer(v)
+	dec := gob.NewDecoder(buf)
+
+	if err := dec.Decode(&m); err != nil {
+		log.Println(err)
+		return m
+	}
+
+	return m
+}
+
+func processPayload(hash string) {
+
+	var pageNumber int
+	file, err := os.Open("books/" + hash + ".bbox.txt")
+	if err != nil {
+		log.Println(err)
+	}
+
+	z := html.NewTokenizer(file)
+
+	var bbox [4]int
+	var tokens map[string][][4]int
+
+	insideWord := false
+
+	for {
+		tt := z.Next()
+
+		switch tt {
+		case html.ErrorToken:
+			//postToElasticsearch(buf.Bytes())
+			return
+
+		case html.StartTagToken:
+			t := z.Token()
+
+			if t.Data == "page" {
+				pageNumber++
+				//fmt.Println(pageNumber, "------------------------------")
+
+				tokens = make(map[string][][4]int)
+			}
+
+			if t.Data == "word" {
+
+				//bbox = BBox{}
+				bbox = [4]int{}
+
+				for _, w := range t.Attr {
+					n, err := strconv.ParseFloat(w.Val, 64)
+					if err != nil {
+						log.Println(err)
+					}
+					n = math.Floor(n + 0.5)
+					coor := int(n)
+
+					switch w.Key {
+					case "xmin":
+						bbox[0] = coor
+					case "ymin":
+						bbox[1] = coor
+					case "xmax":
+						bbox[2] = coor
+					case "ymax":
+						bbox[3] = coor
+					}
+				}
+
+				insideWord = true
+			} else {
+				insideWord = false
+			}
+
+		case html.TextToken:
+			if insideWord {
+				token := strings.TrimSpace(z.Token().Data)
+
+				// use the same analyzer with pageIndex
+				parts := pageIndex.analyzer.Analyze(token)
+				for _, v := range parts {
+					tokens[v.value] = append(tokens[v.value], bbox)
+				}
+			}
+
+		case html.EndTagToken:
+			t := z.Token()
+			if t.Data == "page" {
+				//fmt.Println("end page:", pageNumber)
+				//fmt.Println(len(tokens))
+
+				// insert Payloads into KV store. Use md5 hash and page number as key
+				key := hash + "-" + strconv.Itoa(pageNumber)
+				savePayload(key, tokens)
+				/*
+					fmt.Println(key)
+					fmt.Println("----------------------------------------------------------------")
+					fmt.Println(tokens)
+					fmt.Println("----------------------------------------------------------------")
+				*/
+			}
+		}
+	}
 }
 
 /*
@@ -65,6 +221,8 @@ sample document
 }
 
 */
+
+/*
 
 func CratePagePayloadDatabase() {
 
@@ -131,7 +289,7 @@ func GetPagePayloadJSON(tokens map[string][][4]int) string {
 		log.Fatalf("failed the marshall payloads:%s\n", err)
 	}
 
-	fmt.Println(string(payloadJson))
+	//fmt.Println(string(payloadJson))
 	return string(payloadJson)
 
 }
@@ -219,16 +377,17 @@ func ProcessPayloadFile(writer *cdb.Writer, hash string) {
 				// insert Payloads into KV store. Use md5 hash and page number as key
 				key := hash + "-" + strconv.Itoa(pageNumber)
 				StorePagePayload(writer, key, tokens)
-				/*
-					fmt.Println(key)
-					fmt.Println("----------------------------------------------------------------")
-					fmt.Println(tokens)
-					fmt.Println("----------------------------------------------------------------")
-				*/
+
+				//	fmt.Println(key)
+				//	fmt.Println("----------------------------------------------------------------")
+				//	fmt.Println(tokens)
+				//	fmt.Println("----------------------------------------------------------------")
+
 			}
 		}
 	}
 }
+
 
 func StorePagePayload(writer *cdb.Writer, key string, tokens map[string][][4]int) {
 
@@ -241,3 +400,4 @@ func StorePagePayload(writer *cdb.Writer, key string, tokens map[string][][4]int
 
 	writer.Put([]byte(key), buf.Bytes())
 }
+*/
