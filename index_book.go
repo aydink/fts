@@ -86,7 +86,7 @@ func preparePdfFile(path string) (string, error) {
 
 	} else {
 		log.Printf("Content-Type not supported, expecting application/pdf found %s\n", contentType)
-		return md5string, fmt.Errorf("Content-Type not supported, expecting application/pdf found %s\n", contentType)
+		return md5string, fmt.Errorf("Content-Type %s not supported, expecting application/pdf", contentType)
 	}
 
 	return md5string, nil
@@ -130,6 +130,29 @@ func processPdfFile(book Book) error {
 			return err
 		}
 	}
+
+	if _, err := os.Stat("books/" + book.Hash + ".bbox.gob"); os.IsNotExist(err) {
+		f, err := os.Create("books/" + book.Hash + ".bbox.gob")
+		defer f.Close()
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+		log.Println("-------------------------------", book.Hash)
+		payload, err := CreatePayload(book.Hash)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+		_, err = f.Write(payload)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+	}
+
 	return nil
 }
 

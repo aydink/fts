@@ -141,8 +141,9 @@ func processUploadedPdf(r *http.Request) (map[string]string, error) {
 
 		indexBook(book)
 	} else {
+		formErrors["content_type"] = "Yalnızca PDF dosyaları desteklenmektedir. Geçerli bir dosya yükleyin."
 		log.Printf("Content-Type not supported, expecting application/pdf found %s\n", contentType)
-		return formErrors, fmt.Errorf("Content-Type not supported, expecting application/pdf found %s\n", contentType)
+		return formErrors, fmt.Errorf("Content-Type: %s not supported, expecting application/pdf", contentType)
 	}
 
 	return formErrors, nil

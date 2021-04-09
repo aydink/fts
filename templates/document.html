@@ -164,14 +164,15 @@
 <script src="/static/bootstrap-4/js/bootstrap.min.js"></script>
 <script>
     
-    var currentPage ={{.pageNumber}};
+    var currentPage ={{.curPage}};
     var hash = {{.hash}};
     var maxPage = {{.numPages}};
-
+    var pageId = {{.pageId}}
     function loadPage(increment) {
        
 
         currentPage = currentPage + increment;
+        pageId = pageId + increment
 
         if (currentPage == 0) {
             currentPage = 1;
@@ -204,7 +205,7 @@
     }
 
     $(document).ready(function(){
-        loadPayloads("{{.hash}}-{{.pageNumber}}", "{{.q}}");
+        loadPayloads("{{.hash}}-{{.curPage}}", "{{.q}}");
     });
 
     // create highlight for each posting
@@ -247,11 +248,12 @@
     }
 
     function openPdf() {
-        window.location.href = "/download/?book="+hash+"#page="+{{.pageNumber}};
+        window.location.href = "/download/?book="+hash+"#page="+{{.curPage}};
     }
 
     function updateUrl() {
-        var url = location.protocol + '//' + location.host + "/page?page=" + hash + "-" + currentPage + "&q=" + getQueryVariable("q");
+        //var url = location.protocol + '//' + location.host + "/page?page=" + hash + "-" + currentPage + "&q=" + getQueryVariable("q");
+        var url = location.protocol + '//' + location.host + "/page?page=" + pageId + "&q=" + getQueryVariable("q");
         window.location.replace(url);
     }
 

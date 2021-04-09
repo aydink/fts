@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"encoding/csv"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,7 +19,7 @@ func prepareBooks(csvFile string) ([]Book, error) {
 	//file, err := os.Open("mehaz/" + csvFile)
 	file, err := os.Open("mehaz/" + csvFile)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return nil, err
 	}
 
@@ -29,7 +31,7 @@ func prepareBooks(csvFile string) ([]Book, error) {
 
 	for {
 		record, err := r.Read()
-		fmt.Println(record)
+		log.Println(record)
 		if err == io.EOF {
 			break
 		}
@@ -41,7 +43,7 @@ func prepareBooks(csvFile string) ([]Book, error) {
 		book.Title = record[1] + " " + record[2]
 		year, err := strconv.ParseUint(record[3], 10, 32)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			return nil, err
 		}
 
@@ -52,7 +54,7 @@ func prepareBooks(csvFile string) ([]Book, error) {
 		//hash, err := preparePdfFile("mehaz/" + record[0])
 		hash, err := preparePdfFile(record[0])
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			continue
 			//return nil, err
 		}
@@ -130,7 +132,7 @@ func reindexAllFiles() {
 			log.Println(book)
 			indexBook(book)
 
-			//store payload data in elasticsearch
+			//store payload data in cdb file
 			//ProcessPayloadFile(book.Hash)
 		}
 	}
@@ -151,6 +153,57 @@ func indexBook(book Book) {
 		pageIndex.Add(&page)
 	}
 
+	//processPayload(book.Hash)
+	//syncPayload()
+}
+
+/*
+func indexBookWithPayloads(book Book) error {
+
+	var err error
+	var payloads []map[string][][4]int
+
+	pages, err := getPages(book)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	payloads, err = CreatePayload(book.Hash)
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	book.NumPages = len(pages)
+
+	bookIndex.Add(&book)
+
+	if len(payloads) != book.NumPages {
+		log.Println(fmt.Errorf("Book has %d pages but payloads has %d pages, they must be equal", len(payloads), book.NumPages))
+		return err
+	}
+
+	for _, page := range pages {
+		page.BookId = book.Id
+
+		pageIndex.Add(&page)
+
+		//payloadStore.Put(gobEncode(payloads[page]))
+	}
+
 	processPayload(book.Hash)
 	syncPayload()
+}
+*/
+
+func gobEncode(tokens map[string][][4]int) []byte {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+
+	if err := enc.Encode(tokens); err != nil {
+		log.Fatal(err)
+	}
+
+	return buf.Bytes()
 }

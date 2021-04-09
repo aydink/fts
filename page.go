@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/RoaringBitmap/roaring"
@@ -12,6 +11,11 @@ type Page struct {
 	BookId     int    `json:"book_id"`
 	Content    string `json:"content"`
 	PageNumber int    `json:"page_number"`
+}
+
+type PageStorageEngine interface {
+	storePage(Page)
+	loadPage(int)
 }
 
 type PageIndex struct {
@@ -260,7 +264,7 @@ func (idx *PageIndex) getFacetCounts(postings []Posting) []FacetCount {
 	}
 
 	sort.Sort(byFacetCount(facetCounts))
-	fmt.Printf("%+v\n", facetCounts)
+	//fmt.Printf("%+v\n", facetCounts)
 
 	return facetCounts
 }

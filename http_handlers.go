@@ -193,12 +193,10 @@ func pageHandler(w http.ResponseWriter, r *http.Request) {
 	data["q"] = q
 	data["title"] = curBook.Title
 	data["image"] = image
-	data["content"] = curPage.Content
 	data["hash"] = hash
-	data["pageNumber"] = curPage.PageNumber
 	data["numPages"] = curBook.NumPages
-	data["numPages"] = pageIndex.NumDocs
-	data["page"] = pageInt
+	data["curPage"] = curPage.PageNumber
+	data["pageId"] = pageInt
 
 	//fmt.Printf("%+v", data)
 	t.ExecuteTemplate(w, "document", data)
@@ -209,7 +207,8 @@ func payloadHandler(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
 
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprint(w, GetTokenPositions(page, q))
+	//fmt.Fprint(w, GetTokenPositions(page, q))
+	fmt.Fprint(w, payloadStore.GetTokenPositions(page, q))
 }
 
 func imageHandler(w http.ResponseWriter, r *http.Request) {

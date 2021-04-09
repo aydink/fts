@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 
 	"gopkg.in/neurosnap/sentences.v1"
 	"gopkg.in/neurosnap/sentences.v1/english"
@@ -13,6 +15,10 @@ import (
 
 var bookIndex *BookIndex
 var pageIndex *PageIndex
+
+var payloadStore *CdbStore
+
+//var payloadStore *PayloadStore
 
 var sentenceTokenizer *sentences.DefaultSentenceTokenizer
 
@@ -30,17 +36,8 @@ func buildIndex() {
 	bookIndex = NewBookIndex(analyzer)
 	pageIndex = NewPageIndex(analyzer)
 
+	var err error
 	/*
-		books, err := prepareBooks("li.csv")
-		if err != nil {
-			fmt.Println("Failed to load book list csv file")
-			return
-		}
-
-		for _, book := range books {
-			indexBook(book)
-		}
-
 		books, err := prepareBooks("xliste.csv")
 		if err != nil {
 			fmt.Println("Failed to load book list csv file", err)
@@ -60,6 +57,15 @@ func buildIndex() {
 	bookIndex.buildCategoryBitmap()
 	pageIndex.buildCategoryBitmap(bookIndex)
 
+	payloadStore, err = NewCdbStore()
+	if err != nil {
+		log.Println("Failed to create cdb file")
+		return
+	}
+
+	payloadStore.BuildDatabase()
+	payloadStore.Freeze()
+
 	//CratePagePayloadDatabase()
 	//fmt.Println(LoadPagePayload("a33a19469bfa738e5292140fea7cea6f-21"))
 }
@@ -71,8 +77,8 @@ func cleanUpBeforeExit() {
 		for sig := range c {
 			// sig is a ^C, handle it
 			fmt.Println(sig.String(), "Ctrl-C captured")
-			fmt.Println("Closing pogrep database")
-			pg.Close()
+			//fmt.Println("Closing cdb database")
+			//pg.Close()
 			os.Exit(0)
 		}
 	}()
@@ -80,15 +86,24 @@ func cleanUpBeforeExit() {
 
 func main() {
 
+	f, err := os.OpenFile("out.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	defer f.Close()
+
+	mw := io.MultiWriter(os.Stdout, f)
+	log.SetOutput(mw)
 	log.SetFlags(log.Llongfile)
 
-	// goroutine to handle Ctrl-C exit event
+	// capture Ctrl-C exit event
 	cleanUpBeforeExit()
 
 	// build fulltext index
 	buildIndex()
 
-	var err error
+	runtime.GC()
+
 	sentenceTokenizer, err = english.NewSentenceTokenizer(nil)
 	if err != nil {
 		panic(err)
