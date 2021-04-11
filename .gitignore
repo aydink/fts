@@ -4,6 +4,7 @@ books/
 poppler/
 payload/
 mehaz/
+index/
 static/images/*.png
 out.txt
 data/page_payload.cdb

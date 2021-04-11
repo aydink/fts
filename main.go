@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/gob"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -36,8 +38,45 @@ func buildIndex() {
 	bookIndex = NewBookIndex(analyzer)
 	pageIndex = NewPageIndex(analyzer)
 
+	indexFiles()
+	buildPayloadDatabase()
+
+	pageIndex.updateAvgFieldLen()
+	bookIndex.updateAvgFieldLen()
+
+	bookIndex.buildCategoryBitmap()
+	pageIndex.buildCategoryBitmap(bookIndex)
+
+	SavePageIndex()
+}
+
+func buildPayloadDatabase() {
+
 	var err error
-	/*
+
+	if *flagBuildPayload {
+
+		payloadStore, err = NewCdbStore()
+		if err != nil {
+			log.Println("Failed to create cdb file")
+			return
+		}
+
+		payloadStore.BuildDatabase()
+		payloadStore.Freeze()
+	} else {
+
+		payloadStore, err = OpenCdbStore()
+		if err != nil {
+			log.Println("Failed to open cdb file")
+			return
+		}
+	}
+}
+
+func indexFiles() {
+
+	if *flagRebuild {
 		books, err := prepareBooks("xliste.csv")
 		if err != nil {
 			fmt.Println("Failed to load book list csv file", err)
@@ -47,27 +86,67 @@ func buildIndex() {
 		for _, book := range books {
 			indexBook(book)
 		}
-	*/
+	} else {
+		reindexAllFiles()
+	}
+}
 
-	reindexAllFiles()
+func SavePageIndex() error {
 
-	pageIndex.updateAvgFieldLen()
-	bookIndex.updateAvgFieldLen()
+	//var buf bytes.Buffer
 
-	bookIndex.buildCategoryBitmap()
-	pageIndex.buildCategoryBitmap(bookIndex)
-
-	payloadStore, err = NewCdbStore()
+	f, err := os.Create("index/page_index.gob")
 	if err != nil {
-		log.Println("Failed to create cdb file")
-		return
+		log.Println("Failed to create page_index.gob file")
+		return err
+	}
+	defer f.Close()
+
+	enc := gob.NewEncoder(f)
+	err = enc.Encode(pageIndex)
+
+	if err != nil {
+		log.Println(err)
+		return err
 	}
 
-	payloadStore.BuildDatabase()
-	payloadStore.Freeze()
+	f.Close()
 
-	//CratePagePayloadDatabase()
-	//fmt.Println(LoadPagePayload("a33a19469bfa738e5292140fea7cea6f-21"))
+	/*
+
+		f, err = os.Create("index/page_pagestore.gob")
+		if err != nil {
+			log.Println("Failed to create page_pagestore.gob file")
+			return err
+		}
+		defer f.Close()
+
+		enc = gob.NewEncoder(f)
+		err = enc.Encode(pageIndex.pageStore)
+
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+
+		f, err = os.Create("index/page_pagestore.gob")
+		if err != nil {
+			log.Println("Failed to create page_pagestore.gob file")
+			return err
+		}
+		defer f.Close()
+
+		enc = gob.NewEncoder(f)
+		err = enc.Encode(pageIndex.pageStore)
+
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+	*/
+
+	return nil
 }
 
 func cleanUpBeforeExit() {
@@ -79,12 +158,24 @@ func cleanUpBeforeExit() {
 			fmt.Println(sig.String(), "Ctrl-C captured")
 			//fmt.Println("Closing cdb database")
 			//pg.Close()
+			payloadStore.reader.Close()
 			os.Exit(0)
 		}
 	}()
 }
 
+var flagRebuild *bool
+var flagBuildPayload *bool
+
 func main() {
+
+	flagRebuild = flag.Bool("rebuild", false, "rebuild index form scratch using csv file")
+	flagBuildPayload = flag.Bool("payload", false, "rebuild payload cdb file form scratch")
+
+	flag.Parse()
+
+	fmt.Println(*flagRebuild)
+	fmt.Println(*flagBuildPayload)
 
 	f, err := os.OpenFile("out.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {

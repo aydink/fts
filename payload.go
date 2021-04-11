@@ -563,8 +563,8 @@ func CreatePayload(hash string) ([]byte, error) {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 
-	log.Println("------------------------------------------------------")
-	log.Println(payloads)
+	//log.Println("------------------------------------------------------")
+	//log.Println(payloads)
 
 	if err := enc.Encode(payloads); err != nil {
 		log.Println(err)
@@ -593,6 +593,19 @@ func NewCdbStore() (*CdbStore, error) {
 
 	cdbStore.writer = writer
 
+	return cdbStore, nil
+}
+func OpenCdbStore() (*CdbStore, error) {
+
+	cdbStore := &CdbStore{}
+
+	reader, err := cdb.Open("data/page_payload.cdb")
+	if err != nil {
+		log.Panic(err)
+		return nil, err
+	}
+
+	cdbStore.reader = reader
 	return cdbStore, nil
 }
 

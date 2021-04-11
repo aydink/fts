@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/gob"
 	"sort"
 
 	"github.com/RoaringBitmap/roaring"
@@ -40,6 +42,75 @@ type PageIndex struct {
 
 	// Analyzer to use for text analysis and tokenization
 	analyzer Analyzer
+}
+
+func (p *PageIndex) GobEncode() ([]byte, error) {
+	w := new(bytes.Buffer)
+	encoder := gob.NewEncoder(w)
+	err := encoder.Encode(p.docId)
+	if err != nil {
+		return nil, err
+	}
+	err = encoder.Encode(p.NumDocs)
+	if err != nil {
+		return nil, err
+	}
+
+	err = encoder.Encode(p.index)
+	if err != nil {
+		return nil, err
+	}
+
+	err = encoder.Encode(p.categoryBitmaps)
+	if err != nil {
+		return nil, err
+	}
+	err = encoder.Encode(p.pageStore)
+	if err != nil {
+		return nil, err
+	}
+	err = encoder.Encode(p.fieldLen)
+	if err != nil {
+		return nil, err
+	}
+	err = encoder.Encode(p.avgFieldLen)
+	if err != nil {
+		return nil, err
+	}
+
+	return w.Bytes(), nil
+}
+
+func (p *PageIndex) GobDecode(buf []byte) error {
+	r := bytes.NewBuffer(buf)
+	decoder := gob.NewDecoder(r)
+	err := decoder.Decode(&p.docId)
+	if err != nil {
+		return err
+	}
+	err = decoder.Decode(&p.NumDocs)
+	if err != nil {
+		return err
+	}
+
+	err = decoder.Decode(&p.index)
+	if err != nil {
+		return err
+	}
+
+	err = decoder.Decode(&p.categoryBitmaps)
+	if err != nil {
+		return err
+	}
+	err = decoder.Decode(&p.pageStore)
+	if err != nil {
+		return err
+	}
+	err = decoder.Decode(&p.fieldLen)
+	if err != nil {
+		return err
+	}
+	return decoder.Decode(&p.avgFieldLen)
 }
 
 func NewPageIndex(analyzer Analyzer) *PageIndex {
