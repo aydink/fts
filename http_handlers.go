@@ -296,3 +296,15 @@ func tokenStatHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s\t%d\n", v.Name, v.Count)
 	}
 }
+
+func booksHandler(w http.ResponseWriter, r *http.Request) {
+	t := template.Must(template.New("").Funcs(funcMap).ParseGlob("templates/*.html"))
+
+	data := make(map[string]interface{})
+	data["q"] = ""
+	data["books"] = bookIndex.bookStore
+
+	//log.Println(data)
+
+	t.ExecuteTemplate(w, "books", data)
+}

@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/akrylysov/pogreb"
 	"github.com/colinmarc/cdb"
 	"golang.org/x/net/html"
 )
@@ -52,36 +53,38 @@ func GetTokenPositions(page string, q string) string {
 }
 */
 
-//var pg *pogreb.DB
+var db *Database
 
-func init() {
-	/*
-		var err error
-		pg, err = pogreb.Open("payload", nil)
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
-	*/
+type Database struct {
+	pg *pogreb.DB
 }
 
-/*
-func savePayload(key string, tokens map[string][][4]int) error {
-	ok, err := pg.Has([]byte(key))
+func NewDatabase() *Database {
+	d := &Database{}
+	var err error
+	d.pg, err = pogreb.Open("payload", nil)
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+	return d
+}
+
+func init() {
+	//initialize payload database
+	//which use pogreb
+	db = NewDatabase()
+}
+
+func (db *Database) SavePayload(key string, buf []byte) error {
+	ok, err := db.pg.Has([]byte(key))
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	var buf bytes.Buffer
-	enc := gob.NewEncoder(&buf)
-
-	if err := enc.Encode(tokens); err != nil {
-		log.Fatal(err)
-	}
-
 	if !ok {
-		err = pg.Put([]byte(key), buf.Bytes())
+		err = db.pg.Put([]byte(key), buf)
 		if err != nil {
 			log.Println(err)
 			return err
@@ -91,8 +94,8 @@ func savePayload(key string, tokens map[string][][4]int) error {
 	return nil
 }
 
-func syncPayload() error {
-	err := pg.Sync()
+func (db *Database) Sync() error {
+	err := db.pg.Sync()
 	if err != nil {
 		log.Println(err)
 		return err
@@ -100,11 +103,11 @@ func syncPayload() error {
 	return nil
 }
 
-func loadPayload(key string) map[string][][4]int {
+func (db *Database) LoadPayload(key string) map[string][][4]int {
 
 	m := make(map[string][][4]int)
 
-	v, err := pg.Get([]byte(key))
+	v, err := db.pg.Get([]byte(key))
 	if err != nil {
 		log.Println(err)
 		return m
@@ -121,6 +124,52 @@ func loadPayload(key string) map[string][][4]int {
 	return m
 }
 
+func (db *Database) ProcessBook(hash string) error {
+
+	file, err := os.Open("books/" + hash + ".bbox.gob")
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	defer file.Close()
+
+	payloads := make(map[string]map[string][][4]int)
+
+	dec := gob.NewDecoder(file)
+
+	if err := dec.Decode(&payloads); err != nil {
+		log.Println(err)
+		return err
+	}
+
+	log.Printf("Book key:%s, number of pages:%d", hash, len(payloads))
+	//log.Printf("%+v", payloads)
+
+	for key, tokens := range payloads {
+
+		var buf bytes.Buffer
+
+		enc := gob.NewEncoder(&buf)
+		err := enc.Encode(tokens)
+
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+		//log.Printf("Saving payloads key:%s, length:%d", key, buf.Len())
+
+		err = db.SavePayload(key, buf.Bytes())
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+/*
 func processPayload(hash string) {
 
 	var pageNumber int

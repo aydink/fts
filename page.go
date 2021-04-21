@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/gob"
+	"log"
 	"sort"
 
 	"github.com/RoaringBitmap/roaring"
@@ -373,4 +374,24 @@ func (idx *PageIndex) tokenStats() []FacetCount {
 
 	sort.Sort(byFacetCount(stats))
 	return stats
+}
+
+func (idx *PageIndex) calculateIndexSize() {
+
+	numPosting := 0
+	numPositions := 0
+
+	for _, v := range idx.index {
+		numPosting += len(v)
+		for _, p := range v {
+			numPositions += len(p.positions)
+		}
+	}
+
+	ramPosting := numPosting * 40
+	ramPositions := numPositions * 4
+
+	log.Printf("numPosting:%d, numPositions:%d", numPosting, numPositions)
+	log.Printf("ramPosting:%d, ramPositions:%d", ramPosting, ramPositions)
+
 }
