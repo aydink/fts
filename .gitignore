@@ -8,3 +8,5 @@ index/
 static/images/*.png
 out.txt
 data/page_payload.cdb
+data/page_index.cdb
+data/book_index.cdb

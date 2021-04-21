@@ -282,6 +282,8 @@ func main() {
 	http.HandleFunc("/books", booksHandler)
 	http.HandleFunc("/api/addbook", indexFileHandler)
 	http.HandleFunc("/api/payloads", payloadHandler)
+	http.HandleFunc("/api/saveindex", marshallHandler)
+	http.HandleFunc("/api/loadindex", loadTermHandler)
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	err = http.ListenAndServe(":8080", nil)

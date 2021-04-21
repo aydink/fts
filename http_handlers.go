@@ -82,6 +82,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	templateName := "search"
 
 	hits := pageIndex.Search(q)
+	//hits := pageIndex.Search_Cdb(q)
 
 	if len(category) > 0 {
 		hits = pageIndex.facetFilterCategory(hits, category)
@@ -132,6 +133,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		books := make([]Book, 0)
 
 		postings := bookIndex.Search(q)
+		//postings := bookIndex.Search_Cdb(q)
 		for _, posting := range postings {
 			book := bookIndex.bookStore[posting.docId]
 			book.Title = bookIndex.HighlightTitle(book.Title, q)
@@ -307,4 +309,16 @@ func booksHandler(w http.ResponseWriter, r *http.Request) {
 	//log.Println(data)
 
 	t.ExecuteTemplate(w, "books", data)
+}
+
+func marshallHandler(w http.ResponseWriter, r *http.Request) {
+	pageIndex.MarshalIndex()
+	bookIndex.MarshalIndex()
+	fmt.Fprintln(w, "marshall complete")
+}
+
+func loadTermHandler(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query().Get("q")
+	ReadPosting(q)
+	fmt.Fprintln(w, "read complete")
 }
