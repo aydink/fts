@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/akrylysov/pogreb"
 	"github.com/colinmarc/cdb"
 	"golang.org/x/net/html"
 )
@@ -53,11 +52,13 @@ func GetTokenPositions(page string, q string) string {
 }
 */
 
+/*
 var db *Database
 
 type Database struct {
 	pg *pogreb.DB
 }
+
 
 func NewDatabase() *Database {
 	d := &Database{}
@@ -69,13 +70,15 @@ func NewDatabase() *Database {
 	}
 	return d
 }
+*/
 
 func init() {
 	//initialize payload database
 	//which use pogreb
-	db = NewDatabase()
+	//db = NewDatabase()
 }
 
+/*
 func (db *Database) SavePayload(key string, buf []byte) error {
 	ok, err := db.pg.Has([]byte(key))
 	if err != nil {
@@ -93,7 +96,8 @@ func (db *Database) SavePayload(key string, buf []byte) error {
 
 	return nil
 }
-
+*/
+/*
 func (db *Database) Sync() error {
 	err := db.pg.Sync()
 	if err != nil {
@@ -102,7 +106,9 @@ func (db *Database) Sync() error {
 	}
 	return nil
 }
+*/
 
+/*
 func (db *Database) LoadPayload(key string) map[string][][4]int {
 
 	m := make(map[string][][4]int)
@@ -123,7 +129,9 @@ func (db *Database) LoadPayload(key string) map[string][][4]int {
 
 	return m
 }
+*/
 
+/*
 func (db *Database) ProcessBook(hash string) error {
 
 	file, err := os.Open("books/" + hash + ".bbox.gob")
@@ -168,6 +176,7 @@ func (db *Database) ProcessBook(hash string) error {
 
 	return nil
 }
+*/
 
 /*
 func processPayload(hash string) {

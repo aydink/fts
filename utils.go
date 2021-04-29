@@ -396,3 +396,17 @@ func (f byValue) Less(i, j int) bool {
 func (f byValue) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }
+
+type byBookTitle []Book
+
+func (f byBookTitle) Len() int {
+	return len(f)
+}
+
+func (f byBookTitle) Less(i, j int) bool {
+	return f[i].Title < f[j].Title
+}
+
+func (f byBookTitle) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
+}

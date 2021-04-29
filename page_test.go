@@ -442,6 +442,7 @@ func TestPage(t *testing.T) {
 	fmt.Printf("%+v\n", index.Search(q))
 
 	hits := index.Search(q)
+
 	for _, hit := range hits {
 
 		fmt.Println(index.bookId[hit.docId], books[pages[hit.docId].BookId-1].Title)

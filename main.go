@@ -4,7 +4,6 @@ import (
 	"encoding/gob"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -195,8 +194,8 @@ func cleanUpBeforeExit() {
 			fmt.Println(sig.String(), "Ctrl-C captured")
 
 			//closing pogreb database
-			db.Sync()
-			db.pg.Close()
+			//db.Sync()
+			//db.pg.Close()
 			//fmt.Println("Closing cdb database")
 			//pg.Close()
 			payloadStore.reader.Close()
@@ -245,16 +244,17 @@ func main() {
 	fmt.Println(*flagBuildPayload)
 
 	//go printMemUsage()
+	/*
+		f, err := os.OpenFile("out.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			log.Fatalf("error opening file: %v", err)
+		}
+		defer f.Close()
 
-	f, err := os.OpenFile("out.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("error opening file: %v", err)
-	}
-	defer f.Close()
-
-	mw := io.MultiWriter(os.Stdout, f)
-	log.SetOutput(mw)
-	log.SetFlags(log.Llongfile)
+		mw := io.MultiWriter(os.Stdout, f)
+		log.SetOutput(mw)
+		log.SetFlags(log.Llongfile)
+	*/
 
 	// capture Ctrl-C exit event
 	cleanUpBeforeExit()
@@ -266,6 +266,7 @@ func main() {
 
 	pageIndex.calculateIndexSize()
 
+	var err error
 	sentenceTokenizer, err = english.NewSentenceTokenizer(nil)
 	if err != nil {
 		panic(err)
@@ -286,6 +287,8 @@ func main() {
 	http.HandleFunc("/api/loadindex", loadTermHandler)
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	fmt.Println("--------------------------------------------------")
+	fmt.Println("Arama motorunu kullanmak için tarayıcı ile http://127.0.0.1:8080 adresine gidin")
 	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
 		fmt.Println(err)

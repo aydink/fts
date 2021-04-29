@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -302,10 +303,13 @@ func tokenStatHandler(w http.ResponseWriter, r *http.Request) {
 func booksHandler(w http.ResponseWriter, r *http.Request) {
 	t := template.Must(template.New("").Funcs(funcMap).ParseGlob("templates/*.html"))
 
+	sorted := make([]Book, len(bookIndex.bookStore))
+	copy(sorted, bookIndex.bookStore)
+	sort.Sort(byBookTitle(sorted))
+
 	data := make(map[string]interface{})
 	data["q"] = ""
-	data["books"] = bookIndex.bookStore
-
+	data["books"] = sorted
 	//log.Println(data)
 
 	t.ExecuteTemplate(w, "books", data)

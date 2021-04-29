@@ -29,7 +29,7 @@
             </div>
             {{range .books}}
             <div class="col-sm-12">
-                <div>{{.Title}}</div>
+                <div><a href="/download/?book={{.Hash}}">{{.Title}}</a></div>
             </div>
             {{end}}
         </div>

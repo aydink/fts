@@ -235,30 +235,31 @@ func (idx *PageIndex) Search(q string) []Posting {
 		}
 	}
 
-	for i, token := range tokens {
-		if i == 0 {
-			resultPhrase = make([]Posting, len(idx.index[token.value]))
-			copy(resultPhrase, idx.index[token.value])
-			//fmt.Println(result)
-			idx.scorePosting(result)
-			//fmt.Println(result)
-		} else {
-			//temp := idx.index[token.value]
-			temp = make([]Posting, len(idx.index[token.value]))
-			copy(temp, idx.index[token.value])
-			idx.scorePosting(temp)
+	if len(tokens) >= 2 {
+		for i, token := range tokens {
+			if i == 0 {
+				resultPhrase = make([]Posting, len(idx.index[token.value]))
+				copy(resultPhrase, idx.index[token.value])
+				//fmt.Println(result)
+				idx.scorePosting(result)
+				//fmt.Println(result)
+			} else {
+				//temp := idx.index[token.value]
+				temp = make([]Posting, len(idx.index[token.value]))
+				copy(temp, idx.index[token.value])
+				idx.scorePosting(temp)
 
-			// boolean AND query
-			// result = Intersection(temp, result)
-			// boolean OR query
-			//result = Union(temp, result)
-			// Phrase Query
-			resultPhrase = PhraseQuery_FullMatch(resultPhrase, temp)
+				// boolean AND query
+				// result = Intersection(temp, result)
+				// boolean OR query
+				//result = Union(temp, result)
+				// Phrase Query
+				resultPhrase = PhraseQuery_FullMatch(resultPhrase, temp)
+			}
 		}
+
+		result = Union(result, resultPhrase)
 	}
-
-	result = Union(result, resultPhrase)
-
 	//fmt.Println(result)
 	sort.Sort(ByBoost(result))
 	//fmt.Println("-------------------------------------------------")
