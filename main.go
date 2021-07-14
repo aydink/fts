@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"runtime"
 	"time"
@@ -230,6 +231,26 @@ func bToMbyte(b uint64) float64 {
 	return float64(b) / float64(1024) / float64(1024)
 }
 
+func openBrowser(url string) {
+	var err error
+
+	switch runtime.GOOS {
+	//case "linux":
+	//	err = exec.Command("xdg-open", url).Start()
+	case "windows":
+		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+	case "darwin":
+		err = exec.Command("open", url).Start()
+	default:
+		fmt.Println("--------------------------------------------------")
+		fmt.Println("Arama motorunu kullanmak için tarayıcı ile http://localhost:8080 adresine gidin")
+	}
+
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 var flagRebuild *bool
 var flagBuildPayload *bool
 
@@ -287,8 +308,10 @@ func main() {
 	http.HandleFunc("/api/loadindex", loadTermHandler)
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
-	fmt.Println("--------------------------------------------------")
-	fmt.Println("Arama motorunu kullanmak için tarayıcı ile http://127.0.0.1:8080 adresine gidin")
+
+	// open web browser
+	openBrowser("http://localhost:8080")
+
 	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
 		fmt.Println(err)

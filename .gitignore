@@ -1,4 +1,5 @@
-fts.exe
+*.exe
+*.bat
 fts
 books/
 poppler/
